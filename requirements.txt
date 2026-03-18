@@ -1,0 +1,7 @@
+biopython==1.83
+pandas==2.2.1
+numpy==1.26.4
+scipy==1.13.0
+requests==2.31.0
+python-dotenv==1.0.1
+propka==3.5.0
