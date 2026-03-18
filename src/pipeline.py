@@ -192,36 +192,52 @@ def run_pipeline(
     pH_values: List[float] = None
 ) -> pd.DataFrame:
     """
-    Run the full pipeline on all PDB files in a folder.
-    Saves results to a CSV file.
+    Run the full pipeline on all PDB files in a folder or GCS bucket.
+    Accepts both local paths and GCS URIs (gs://bucket/prefix/).
     """
     if pH_values is None:
         pH_values = DEFAULT_PH_VALUES
 
-    pdb_files = sorted([
-        f for f in os.listdir(pdb_folder)
-        if f.endswith(".pdb")
-    ])
+    # Import GCS utilities (handles both local and cloud paths)
+    from gcs_utils import list_pdb_files, download_pdb, upload_results, is_gcs_path
+
+    # Get list of PDB files — works for both local and GCS paths
+    pdb_files = list_pdb_files(pdb_folder)
 
     if not pdb_files:
-        print(f"ERROR: No PDB files found in {pdb_folder}")
+        print(f"ERROR: No PDB files found at {pdb_folder}")
         return pd.DataFrame()
 
     print("=" * 60)
     print("pH-ZinCloud — Full Pipeline Run")
     print("=" * 60)
-    print(f"Input folder : {pdb_folder}")
+    print(f"Input        : {pdb_folder}")
     print(f"Output CSV   : {output_csv}")
     print(f"pH values    : {pH_values}")
-    print(f"PDB files    : {pdb_files}")
+    print(f"PDB files    : {len(pdb_files)} found")
     print("=" * 60)
 
     all_rows = []
-    for filename in pdb_files:
-        pdb_path = os.path.join(pdb_folder, filename)
-        pdb_id   = filename.replace(".pdb", "").upper()
+
+    # Temp directory for GCS downloads
+    import tempfile
+    tmp_dir = tempfile.mkdtemp()
+
+    for pdb_path in pdb_files:
+        # If GCS path, download to temp dir first
+        if is_gcs_path(pdb_path):
+            try:
+                local_pdb = download_pdb(pdb_path, tmp_dir)
+            except Exception as e:
+                print(f"  [ERROR] Could not download {pdb_path}: {e}")
+                continue
+        else:
+            local_pdb = pdb_path
+
+        pdb_id = os.path.basename(local_pdb).replace(".pdb", "").upper()
         print(f"\nProcessing: {pdb_id}")
-        rows = run_single(pdb_path, pH_values)
+
+        rows = run_single(local_pdb, pH_values)
         if rows:
             print(f"  → {len(rows)} residue rows produced")
             all_rows.extend(rows)
@@ -234,10 +250,15 @@ def run_pipeline(
 
     df = pd.DataFrame(all_rows)
 
-    # ── Fix 2: Safe makedirs ──────────────────────────────
-    output_dir = os.path.dirname(os.path.abspath(output_csv))
+    # Save locally first
+    local_output = output_csv if not is_gcs_path(output_csv) else os.path.join(tmp_dir, "results.csv")
+    output_dir = os.path.dirname(os.path.abspath(local_output))
     os.makedirs(output_dir, exist_ok=True)
-    df.to_csv(output_csv, index=False)
+    df.to_csv(local_output, index=False)
+
+    # Upload to GCS if output path is a GCS URI
+    if is_gcs_path(output_csv):
+        upload_results(local_output, output_csv)
 
     print(f"\n{'=' * 60}")
     print(f"PIPELINE COMPLETE")
@@ -246,7 +267,6 @@ def run_pipeline(
     print(f"  Output saved    : {output_csv}")
 
     return df
-
 
 # ─────────────────────────────────────────────────────
 # Results summary printer
