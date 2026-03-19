@@ -71,6 +71,7 @@ def _load_pkad() -> pd.DataFrame:
 
 # Load at module level so it's only read from disk once
 _PKAD_DF = _load_pkad()
+_PROPKA_CACHE: dict = {}
 
 
 # ─────────────────────────────────────────
@@ -152,51 +153,58 @@ def _parse_propka_output(pka_file: str, chain: str, residue_num: int) -> float |
 
 def estimate_pka_propka(pdb_file: str, chain: str, residue_num: int) -> dict | None:
     """
-    Run PROPKA on a PDB file and return predicted pKa for a specific residue.
-
-    Returns a dict with keys: pka, source, tier
-    Returns None if PROPKA fails or residue not found in output.
+    Run PROPKA using the Python library API and return pKa for a specific residue.
+    Uses atom.res_num (not atom.res_seq) which is the correct attribute in propka 3.5.0.
+    Caches the full MolecularContainer per PDB file to avoid re-running for each residue.
     """
     if not os.path.exists(pdb_file):
         logger.warning(f"PDB file not found for PROPKA: {pdb_file}")
         return None
 
-    pka_file = pdb_file.replace(".pdb", ".pka")
+    try:
+        import propka.run as pk
 
-    # Run PROPKA only if .pka file doesn't already exist (cache it)
-    if not os.path.exists(pka_file):
-        try:
-            result = subprocess.run(
-                ["propka3", pdb_file],
-                capture_output=True, text=True, timeout=60
-            )
-            if result.returncode != 0:
-                logger.warning(f"PROPKA failed on {pdb_file}: {result.stderr[:200]}")
-                return None
-        except FileNotFoundError:
-            logger.warning("PROPKA not installed. Tier 2 unavailable.")
+        # Run PROPKA once per PDB file and cache the result
+        if pdb_file not in _PROPKA_CACHE:
+            try:
+                mol = pk.single(pdb_file, optargs=["--quiet"])
+                # Use conformation '1A' (first model) — 'AVR' is the average
+                conf_key = '1A' if '1A' in mol.conformations else list(mol.conformations.keys())[0]
+                _PROPKA_CACHE[pdb_file] = mol.conformations[conf_key]
+                logger.info(f"PROPKA ran on {os.path.basename(pdb_file)}: "
+                            f"{len(_PROPKA_CACHE[pdb_file].groups)} groups found")
+            except Exception as e:
+                logger.warning(f"PROPKA run failed on {pdb_file}: {e}")
+                _PROPKA_CACHE[pdb_file] = None
+
+        conf = _PROPKA_CACHE.get(pdb_file)
+        if conf is None:
             return None
-        except subprocess.TimeoutExpired:
-            logger.warning(f"PROPKA timed out on {pdb_file}")
-            return None
 
-    pka_val = _parse_propka_output(pka_file, chain, residue_num)
+        # Search groups for the matching chain + residue number
+        for group in conf.groups:
+            try:
+                atom = group.atom
+                g_chain  = atom.chain_id
+                g_resnum = int(atom.res_num)       # ← correct attribute
+                g_pka    = group.pka_value
 
-    if pka_val is None:
-        return None
+                if g_chain == chain and g_resnum == int(residue_num):
+                    if g_pka is not None and 0.5 <= float(g_pka) <= 14.0:
+                        return {
+                            "pka":    round(float(g_pka), 2),
+                            "source": "PROPKA (computational)",
+                            "tier":   2
+                        }
+            except (AttributeError, ValueError, TypeError):
+                continue
 
-    if not (0.5 <= pka_val <= 14.0):
-        logger.warning(
-            f"PROPKA returned implausible pKa={pka_val} for "
-            f"chain={chain} res={residue_num} — discarding, falling to Tier 3"
-        )
-        return None
+    except ImportError:
+        logger.warning("PROPKA Python library not installed. Tier 2 disabled.")
+    except Exception as e:
+        logger.warning(f"PROPKA unexpected error on {pdb_file}: {e}")
 
-    return {
-        "pka":    pka_val,
-        "source": "PROPKA (computational)",
-        "tier":   2
-    }
+    return None
 
 
 # ─────────────────────────────────────────
