@@ -11,3 +11,4 @@ plotly>=5.0
 py3Dmol>=2.0
 db-dtypes>=1.0
 Pillow>=10.0
+streamlit==1.32.0

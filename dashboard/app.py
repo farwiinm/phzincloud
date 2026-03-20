@@ -502,20 +502,47 @@ def main():
         ph_score_col = f"pH_{str(selected_pH).replace('.','_')}_score"
         if ph_score_col in display_df.columns:
             site_scores = display_df.groupby("zinc_site_id")[ph_score_col].first()
-            fig_hist = go.Figure(go.Histogram(
-                x=site_scores.values,
-                nbinsx=10,
-                marker_color="#2E75B6",
-                opacity=0.8
-            ))
-            fig_hist.update_layout(
-                xaxis_title="Stability Score",
-                yaxis_title="Count",
-                height=200,
-                margin=dict(l=20, r=20, t=20, b=30),
-                plot_bgcolor="white"
+
+            if len(site_scores) < 3:
+                # Too few sites for histogram — show a simple metric instead
+                for site_id, score in site_scores.items():
+                    colour = score_colour(score)
+                    label  = score_label(score)
+                    st.markdown(
+                        f"**{site_id.replace(current_pdb + '_', '')}:** "
+                        f"<span style='color:{colour}'>{score:.4f} — {label}</span>",
+                        unsafe_allow_html=True
+                    )
+            else:
+                # Enough sites for a meaningful histogram
+                nbins = min(10, len(site_scores))
+                fig_hist = go.Figure(go.Histogram(
+                    x=site_scores.values,
+                    nbinsx=nbins,
+                    marker_color="#2E75B6",
+                    opacity=0.8,
+                    xbins=dict(start=0.0, end=1.0, size=0.1)
+                ))
+                fig_hist.add_vline(
+                    x=float(site_scores.mean()),
+                    line_dash="dash",
+                    line_color="#f57c00",
+                    annotation_text=f"Mean: {site_scores.mean():.3f}"
+                )
+                fig_hist.update_layout(
+                    xaxis_title="Stability Score",
+                    yaxis_title="Site Count",
+                    xaxis=dict(range=[0, 1.05]),
+                    height=200,
+                    margin=dict(l=20, r=20, t=20, b=30),
+                    plot_bgcolor="white"
+                )
+                st.plotly_chart(fig_hist, width='stretch')
+
+            st.caption(
+                f"Distribution of {len(site_scores)} site(s) at pH {selected_pH}. "
+                f"Expand dataset to 50+ proteins for a meaningful distribution."
             )
-            st.plotly_chart(fig_hist, use_container_width=True)
 
 
 if __name__ == "__main__":
