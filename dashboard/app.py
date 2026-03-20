@@ -18,7 +18,16 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import requests
+# Streamlit version compatibility
+_ST_VERSION = tuple(int(x) for x in _st.__version__.split(".")[:2])
 
+def _stretch(kwargs):
+    """Add correct width parameter based on Streamlit version."""
+    if _ST_VERSION >= (1, 40):
+        kwargs["width"] = "stretch"
+    else:
+        kwargs["use_container_width"] = True
+    return kwargs
 # ── Page configuration ─────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="pH-ZinCloud",
