@@ -1,3 +1,4 @@
+﻿streamlit
 biopython>=1.83
 pandas>=2.0
 numpy>=1.24
