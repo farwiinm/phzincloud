@@ -157,6 +157,11 @@ def estimate_pka_propka(pdb_file: str, chain: str, residue_num: int) -> dict | N
     Uses atom.res_num (not atom.res_seq) which is the correct attribute in propka 3.5.0.
     Caches the full MolecularContainer per PDB file to avoid re-running for each residue.
     """
+    # Prevent unbounded memory growth during large batch runs
+    # Cache only needs current protein — clear when it exceeds 50 entries
+    if len(_PROPKA_CACHE) > 50:
+        _PROPKA_CACHE.clear()
+
     if not os.path.exists(pdb_file):
         logger.warning(f"PDB file not found for PROPKA: {pdb_file}")
         return None
