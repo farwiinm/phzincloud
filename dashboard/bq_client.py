@@ -13,17 +13,33 @@ logger = logging.getLogger(__name__)
 # ── Configuration ─────────────────────────────────────────────────────────────
 PROJECT_ID  = os.environ.get("GCP_PROJECT",    "phzincloud")
 DATASET_ID  = os.environ.get("BQ_DATASET",     "phzincloud_results")
-TABLE_ID    = os.environ.get("BQ_TABLE",        "residue_scores")
-LOCAL_CSV   = os.environ.get("LOCAL_CSV",       "results/results.csv")
+TABLE_ID = os.environ.get("BQ_TABLE", "residue_scores_cloud")
+LOCAL_CSV = os.environ.get("LOCAL_CSV", "results/results_batch.csv")
 
 FULL_TABLE  = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 
 
 def _get_client():
-    """Return a BigQuery client, or None if credentials unavailable."""
+    """Return a BigQuery client using Streamlit secrets or default credentials."""
     try:
         from google.cloud import bigquery
+        import streamlit as st
+
+        # Use Streamlit secrets when deployed on Streamlit Cloud
+        if hasattr(st, 'secrets') and 'gcp_service_account' in st.secrets:
+            from google.oauth2 import service_account
+            credentials = service_account.Credentials.from_service_account_info(
+                st.secrets["gcp_service_account"],
+                scopes=["https://www.googleapis.com/auth/bigquery.readonly"]
+            )
+            return bigquery.Client(
+                credentials=credentials,
+                project=PROJECT_ID
+            )
+
+        # Fall back to application default credentials (local or Cloud Run)
         return bigquery.Client(project=PROJECT_ID)
+
     except Exception as e:
         logger.warning(f"BigQuery client unavailable: {e}")
         return None
