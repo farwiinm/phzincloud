@@ -24,6 +24,7 @@ COPY --from=builder /app/deps /app/deps
 ENV PYTHONPATH="/app/deps"
 
 COPY src/ ./src/
+COPY data/reference/ ./data/reference/
 COPY tests/ ./tests/
 COPY validate_parser.py .
 COPY batch_parse.py .

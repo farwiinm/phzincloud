@@ -18,3 +18,4 @@ logs/
 *.ipynb
 .ipynb_checkpoints/
 PARSER_COMPLETE.md
+!data/reference/
