@@ -1,6 +1,5 @@
 # Parser Module — Complete
 
-**Date completed:** [today's date]
 **Version:** 1.0.0
 **Validated against:** 1CA2, 4TLN, 3CPA, 1CDO, 4MT2, 1UBQ
 
