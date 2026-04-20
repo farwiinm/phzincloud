@@ -1,6 +1,4 @@
 """
-fetch_pdbs.py
--------------
 Downloads zinc-binding human protein structures from RCSB PDB.
 
 Dataset inclusion criteria (documented for thesis Chapter 6):
@@ -9,9 +7,6 @@ Dataset inclusion criteria (documented for thesis Chapter 6):
     - Resolution:  <= 2.5 Angstroms
     - Metal:       Zinc (ZN)
     - Site type:   Mononuclear (single zinc ion per site)
-
-Usage:
-    python fetch_pdbs.py
 
 Output:
     data/raw/batch_proteins/   <- downloaded .pdb files
@@ -25,7 +20,6 @@ import json
 import requests
 import logging
 
-# ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(message)s",
@@ -33,12 +27,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ── Configuration ──────────────────────────────────────────────────────────────
 OUTPUT_DIR   = "data/raw/batch_proteins"
 LOG_FILE     = "data/raw/download_log.csv"
-MAX_PROTEINS = 1000          # upper cap — stays well within free trial budget
-DELAY_SEC    = 0.25         # pause between downloads — be polite to RCSB
-TIMEOUT_SEC  = 30           # per-request timeout
+MAX_PROTEINS = 1000          
+DELAY_SEC    = 0.25         
+TIMEOUT_SEC  = 30           
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -54,7 +47,6 @@ def get_pdb_ids(max_results: int = 800) -> list:
     """
     url = "https://search.rcsb.org/rcsbsearch/v2/query"
 
-    # Build the search query — all four criteria must be satisfied (AND logic)
     query = {
         "query": {
             "type": "group",
@@ -109,7 +101,6 @@ def get_pdb_ids(max_results: int = 800) -> list:
                 "rows":  max_results
             },
             "sort": [
-                # Sort by score descending — highest quality hits first
                 {"sort_by": "score", "direction": "desc"}
             ]
         }
@@ -194,16 +185,9 @@ def _curated_fallback() -> list:
 def download_one(pdb_id: str) -> dict:
     """
     Download a single PDB file from RCSB.
-
-    Returns a result dict with keys:
-        pdb_id   — the identifier
-        status   — 'downloaded', 'cached', or 'failed'
-        size_kb  — file size in kilobytes
-        reason   — error message if failed, empty string otherwise
     """
     out_path = os.path.join(OUTPUT_DIR, f"{pdb_id}.pdb")
 
-    # Skip if already downloaded
     if os.path.exists(out_path):
         size_kb = os.path.getsize(out_path) // 1024
         return {"pdb_id": pdb_id, "status": "cached",
@@ -246,7 +230,6 @@ def run():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
-    # ── Get PDB IDs ───────────────────────────────────────────────────────────
     pdb_ids = get_pdb_ids(MAX_PROTEINS)
 
     if not pdb_ids:
@@ -258,7 +241,6 @@ def run():
     logger.info(f"Output: {OUTPUT_DIR}")
     logger.info("")
 
-    # ── Download loop ─────────────────────────────────────────────────────────
     results     = []
     downloaded  = 0
     cached      = 0
@@ -278,7 +260,6 @@ def run():
             )
         elif status == "cached":
             cached += 1
-            # Only log every 50th cached file to keep output readable
             if cached % 50 == 1:
                 logger.info(
                     f"[{i:>4}/{total}]  ~  {pdb_id}  (already downloaded)"
@@ -301,10 +282,8 @@ def run():
                 f"Available: {available} ──"
             )
 
-        # Polite delay between requests
         time.sleep(DELAY_SEC)
 
-    # ── Save download log ──────────────────────────────────────────────────────
     with open(LOG_FILE, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(
             f, fieldnames=["pdb_id", "status", "size_kb", "reason"]
@@ -312,7 +291,6 @@ def run():
         writer.writeheader()
         writer.writerows(results)
 
-    # ── Final summary ──────────────────────────────────────────────────────────
     available = downloaded + cached
     logger.info("")
     logger.info("=" * 60)
