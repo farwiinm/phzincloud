@@ -5,10 +5,6 @@ Three-Tier pKa Assignment Module for pH-ZinCloud
 Tier 1: Experimental lookup from PKAD-R database
 Tier 2: PROPKA computational prediction
 Tier 3: Canonical literature defaults (fallback)
-
-Usage:
-    from pka_lookup import get_pka
-    result = get_pka(pdb_id, chain, residue_num, residue_name, pdb_file)
 """
 
 import pandas as pd
@@ -152,13 +148,8 @@ def _parse_propka_output(pka_file: str, chain: str, residue_num: int) -> float |
 
 
 def estimate_pka_propka(pdb_file: str, chain: str, residue_num: int) -> dict | None:
-    """
-    Run PROPKA using the Python library API and return pKa for a specific residue.
-    Uses atom.res_num (not atom.res_seq) which is the correct attribute in propka 3.5.0.
-    Caches the full MolecularContainer per PDB file to avoid re-running for each residue.
-    """
     # Prevent unbounded memory growth during large batch runs
-    # Cache only needs current protein — clear when it exceeds 50 entries
+    # Cache only needs current protein,clear when it exceeds 50 entries
     if len(_PROPKA_CACHE) > 50:
         _PROPKA_CACHE.clear()
 
@@ -169,11 +160,9 @@ def estimate_pka_propka(pdb_file: str, chain: str, residue_num: int) -> dict | N
     try:
         import propka.run as pk
 
-        # Run PROPKA once per PDB file and cache the result
         if pdb_file not in _PROPKA_CACHE:
             try:
                 mol = pk.single(pdb_file, optargs=["--quiet"])
-                # Use conformation '1A' (first model) — 'AVR' is the average
                 conf_key = '1A' if '1A' in mol.conformations else list(mol.conformations.keys())[0]
                 _PROPKA_CACHE[pdb_file] = mol.conformations[conf_key]
                 logger.info(f"PROPKA ran on {os.path.basename(pdb_file)}: "
@@ -186,12 +175,11 @@ def estimate_pka_propka(pdb_file: str, chain: str, residue_num: int) -> dict | N
         if conf is None:
             return None
 
-        # Search groups for the matching chain + residue number
         for group in conf.groups:
             try:
                 atom = group.atom
                 g_chain  = atom.chain_id
-                g_resnum = int(atom.res_num)       # ← correct attribute
+                g_resnum = int(atom.res_num)       
                 g_pka    = group.pka_value
 
                 if g_chain == chain and g_resnum == int(residue_num):
@@ -238,12 +226,7 @@ def get_pka(
     pdb_file: str = None
 ) -> dict:
     """
-    Get pKa for a residue using the three-tier system.
-
     Tries Tier 1 (experimental) → Tier 2 (PROPKA) → Tier 3 (canonical).
-    Always returns a result — never raises.
-
-    Returns dict with keys: pka, source, tier
     """
     # Tier 1: Experimental
     result = lookup_experimental_pka(pdb_id, chain, residue_num, residue_name)
