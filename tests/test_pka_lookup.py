@@ -1,7 +1,6 @@
 # tests/test_pka_lookup.py
 """
 Tests for the three-tier pKa lookup module.
-Run from project root: python tests/test_pka_lookup.py
 """
 
 import sys
@@ -59,7 +58,6 @@ result = get_pka("XXXX", "A", 999, "ZZZ")
 assert result["pka"] is None, "Completely unknown residue should return pka=None"
 print(f"  ✓ Unknown residue returns pka=None: {result}")
 
-# Known residue, real PDB that exists in parser output
 result = get_pka("1CA2", "A", 94, "HIS",
                  pdb_file="data/raw/test_proteins/1CA2.pdb")
 assert result["pka"] is not None, "1CA2 HIS94 should get a pKa value"
@@ -69,7 +67,6 @@ print(f"  ✓ 1CA2 HIS94: pKa={result['pka']}, Tier={result['tier']}, source={re
 # ── pKa value sanity checks ─────────────────────────
 print("\n[4] pKa value sanity checks")
 
-# All standard coordinating residues should return pKa in a plausible range
 test_residues = ["HIS", "CYS", "ASP", "GLU"]
 for res in test_residues:
     result = get_pka("XXXX", "A", 1, res)
