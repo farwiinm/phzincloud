@@ -1,6 +1,4 @@
 """
-validate_parser.py
-------------------
 Cross-validates parse_zinc_sites output against known coordination
 environments from the published structural biochemistry literature.
 
@@ -9,9 +7,6 @@ References:
     4TLN: Matthews et al. (1974) J Mol Biol 86:511-528
     3CPA: Rees et al. (1983) J Mol Biol 168:367-387
     1CDO: Eklund et al. (1976) J Mol Biol 102:27-59
-
-Run with:
-    python validate_parser.py
 """
 
 import os
@@ -19,13 +14,6 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from parse_zinc_sites import parse_zinc_sites, summarise_site
-
-# ── Ground truth from literature ─────────────────────────────────────────────
-# Format: pdb_id → list of expected coordination sites
-# Each site is a dict with:
-#   residues: set of (residue_name, seq_num) tuples we expect to find
-#   site_label: human-readable label for reporting
-#   source: literature reference
 
 GROUND_TRUTH = {
     "1CA2": [
@@ -52,14 +40,11 @@ GROUND_TRUTH = {
     "1CDO": [
         {
             "site_label": "Catalytic zinc (CysHisCys + water)",
-            # Updated: PDB file uses +1 offset from Eklund et al. (1976)
-            # CYS174→175, HIS67→68 in deposited structure numbering
             "residues": {("CYS", 46), ("CYS", 175), ("HIS", 68)},
             "source": "Eklund et al. (1976) — seq nums adjusted for PDB deposit"
         },
         {
             "site_label": "Structural zinc (Cys4)",
-            # Updated: CYS97→98, CYS100→101, CYS103→104, CYS111→112
             "residues": {("CYS", 98), ("CYS", 101), ("CYS", 104), ("CYS", 112)},
             "source": "Eklund et al. (1976) — seq nums adjusted for PDB deposit"
         }
@@ -82,13 +67,6 @@ TEST_DIR = os.path.join("data", "raw", "test_proteins")
 def validate_protein(pdb_id: str, expected_sites: list) -> dict:
     """
     Parse a protein and compare results to expected coordination sites.
-
-    Returns a dict with:
-        pdb_id          — protein identifier
-        total_expected  — number of expected sites
-        total_found     — number of parser-found sites
-        sites           — list of per-site comparison results
-        all_passed      — True if all expected residues found
     """
     pdb_file = os.path.join(TEST_DIR, f"{pdb_id}.pdb")
 
@@ -108,13 +86,11 @@ def validate_protein(pdb_id: str, expected_sites: list) -> dict:
             "all_passed": False
         }
 
-    # Build a set of all (residue_name, seq_num) found by parser
     found_residues = {
         (r["residue_name"], r["residue_seq_num"])
         for r in results
     }
 
-    # Also collect site summaries for reporting
     site_ids = dict.fromkeys(r["zinc_site_id"] for r in results)
     site_summaries = {}
     for site_id in site_ids:
@@ -126,9 +102,9 @@ def validate_protein(pdb_id: str, expected_sites: list) -> dict:
 
     for expected in expected_sites:
         expected_set = expected["residues"]
-        found_this_site = expected_set & found_residues  # intersection
-        missing         = expected_set - found_residues  # in expected, not found
-        extra           = found_residues - expected_set  # found but not expected
+        found_this_site = expected_set & found_residues  
+        missing         = expected_set - found_residues  
+        extra           = found_residues - expected_set  
 
         passed = len(missing) == 0
 
@@ -159,7 +135,6 @@ def print_validation_report(validation: dict):
     print(f"\n{'═' * 60}")
     print(f"  {pdb_id}")
 
-    # Print numbering note if one exists for this protein
     if pdb_id in NUMBERING_NOTES:
         print(f"  NOTE: {NUMBERING_NOTES[pdb_id]}")
 
@@ -171,7 +146,6 @@ def print_validation_report(validation: dict):
 
     print(f"  Parser found {validation['total_sites']} zinc site(s).")
 
-    # Print what the parser actually found
     print(f"\n  Parser output:")
     for site_id, summary in validation["parser_output"].items():
         print(f"    • {site_id}")
@@ -179,7 +153,6 @@ def print_validation_report(validation: dict):
         print(f"      Ligands : {summary['residue_summary']}")
         print(f"      Avg dist: {summary['avg_distance']} Å")
 
-    # Print comparison against literature
     print(f"\n  Literature comparison:")
     for comp in validation["comparisons"]:
         status = "✓ PASS" if comp["passed"] else "✗ FAIL"
@@ -209,8 +182,6 @@ def print_validation_report(validation: dict):
 
 
 def run_validation():
-    """Run full cross-validation suite and print summary."""
-
     print(f"\n{'═' * 60}")
     print("  pH-ZinCloud Parser — Literature Cross-Validation")
     print(f"{'═' * 60}")
@@ -251,10 +222,6 @@ def run_validation():
     return failed_count == 0
 
 def check_cb_coords(pdb_id: str):
-    """
-    Verify that CB coordinates are captured for all coordinating residues.
-    Prints a warning for any residue where CB coords are None.
-    """
     pdb_file = os.path.join(TEST_DIR, f"{pdb_id}.pdb")
     if not os.path.exists(pdb_file):
         return
