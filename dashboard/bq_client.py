@@ -10,7 +10,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ── Configuration ─────────────────────────────────────────────────────────────
 PROJECT_ID  = os.environ.get("GCP_PROJECT",    "phzincloud")
 DATASET_ID  = os.environ.get("BQ_DATASET",     "phzincloud_results")
 TABLE_ID = os.environ.get("BQ_TABLE", "residue_scores_cloud")
@@ -37,7 +36,6 @@ def _get_client():
                 project=PROJECT_ID
             )
 
-        # Fall back to application default credentials (local or Cloud Run)
         return bigquery.Client(project=PROJECT_ID)
 
     except Exception as e:
@@ -136,7 +134,6 @@ def run_pipeline_for_pdb(pdb_id: str) -> pd.DataFrame:
         logger.error(f"Failed to download {pdb_id} from RCSB: {e}")
         return pd.DataFrame()
 
-    # Save to temp file and run pipeline
     with tempfile.NamedTemporaryFile(
         suffix=".pdb", mode="w", delete=False
     ) as f:
