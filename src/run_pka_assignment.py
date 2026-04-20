@@ -4,9 +4,6 @@ Integration script: runs the zinc site parser on all test proteins,
 then calls get_pka() on each coordinating residue.
 
 Produces: results/zinc_sites_pka_enriched.csv
-
-Run from project root:
-    python src/run_pka_assignment.py
 """
 
 import sys
@@ -18,9 +15,6 @@ sys.path.insert(0, "src")
 from parse_zinc_sites import parse_zinc_sites
 from pka_lookup import get_pka
 
-# ─────────────────────────────────────────
-# Configuration
-# ─────────────────────────────────────────
 PDB_FOLDER  = "data/raw/test_proteins"
 OUTPUT_FILE = "results/zinc_sites_pka_enriched.csv"
 
@@ -43,7 +37,6 @@ def process_all_proteins(pdb_folder: str) -> pd.DataFrame:
         print(f"{'─'*50}")
         print(f"Processing: {pdb_id}")
 
-        # ── Step 1: Parse zinc coordination sites ──
         try:
             sites = parse_zinc_sites(pdb_path, cutoff=5.0)
         except Exception as e:
@@ -56,17 +49,14 @@ def process_all_proteins(pdb_folder: str) -> pd.DataFrame:
 
         print(f"  {len(sites)} coordinating residue(s) found")
 
-        # ── Step 2: Assign pKa to each residue ──────
         for site in sites:
 
-            # ── Key fix: read the actual field names your parser uses ──
             chain       = site.get("residue_chain") or site.get("chain")
             res_num     = site.get("residue_seq_num")
             res_name    = site.get("residue_name")
             zinc_id     = site.get("zinc_site_id") or site.get("zinc_id", "ZN")
             distance    = site.get("distance_to_zinc") or site.get("distance_from_zinc", 0.0)
 
-            # Safety check — skip if any critical field is missing
             if not all([chain, res_num, res_name]):
                 print(f"  WARNING: Incomplete site data — {site}")
                 continue
@@ -145,15 +135,12 @@ def main():
         print("Check that your PDB files contain zinc (ZN) records.")
         return
 
-    # Save enriched CSV
     df.to_csv(OUTPUT_FILE, index=False)
     print(f"\n✓ Enriched results saved → {OUTPUT_FILE}")
     print(f"  Rows: {len(df)}  |  Columns: {list(df.columns)}")
 
-    # Tier coverage summary
     print_tier_coverage(df)
 
-    # Preview
     print("\nFIRST 10 ROWS:")
     print(df.head(10).to_string(index=False))
 
