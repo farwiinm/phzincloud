@@ -8,7 +8,7 @@ allowing the same pipeline.py to run both locally and in Cloud Run.
 import os
 import logging
 
-# Only import GCS library if available — allows local runs without GCP credentials
+# Only import GCS library if available, allows local runs without GCP credentials
 try:
     from google.cloud import storage
     GCS_AVAILABLE = True
@@ -33,15 +33,6 @@ def parse_gcs_path(gcs_uri: str) -> tuple:
 
 
 def list_pdb_files(input_path: str) -> list:
-    """
-    List all .pdb files at a local path or GCS prefix.
-
-    Args:
-        input_path: Local folder path or GCS URI prefix (gs://bucket/folder/)
-
-    Returns:
-        List of file paths or GCS URIs pointing to .pdb files.
-    """
     if is_gcs_path(input_path):
         if not GCS_AVAILABLE:
             raise RuntimeError("google-cloud-storage not installed but GCS path provided.")
@@ -63,16 +54,6 @@ def list_pdb_files(input_path: str) -> list:
 
 
 def download_pdb(gcs_uri: str, local_dir: str) -> str:
-    """
-    Download a PDB file from GCS to a local temporary directory.
-
-    Args:
-        gcs_uri:   GCS URI of the PDB file (gs://bucket/path/file.pdb)
-        local_dir: Local directory to download into
-
-    Returns:
-        Local path to the downloaded file.
-    """
     if not GCS_AVAILABLE:
         raise RuntimeError("google-cloud-storage not installed.")
 
@@ -90,13 +71,6 @@ def download_pdb(gcs_uri: str, local_dir: str) -> str:
 
 
 def upload_results(local_csv: str, output_path: str):
-    """
-    Upload results CSV to GCS or keep locally depending on output_path.
-
-    Args:
-        local_csv:   Local path to the results CSV file.
-        output_path: Destination — either a local path or GCS URI.
-    """
     if is_gcs_path(output_path):
         if not GCS_AVAILABLE:
             raise RuntimeError("google-cloud-storage not installed.")
@@ -107,5 +81,4 @@ def upload_results(local_csv: str, output_path: str):
         blob.upload_from_filename(local_csv)
         logging.info(f"Uploaded results → {output_path}")
     else:
-        # Already at local path — nothing to do
         logging.info(f"Results saved locally at {local_csv}")
