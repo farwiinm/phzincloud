@@ -6,10 +6,6 @@ Chains all modules together:
 
 This is the core of the artifact. Every downstream component
 (Docker, Cloud Run, BigQuery, Streamlit) uses this as its engine.
-
-Usage:
-    python src/pipeline.py
-    Or import and call run_pipeline() from other scripts.
 """
 import sys
 import os
@@ -56,23 +52,12 @@ def run_single(
     pH_values: List[float] = None
 ) -> List[Dict[str, Any]]:
     """
-    Run the full pipeline on a single PDB file.
-
     Steps:
         1. Parse zinc coordination sites (Biopython)
         2. Look up pKa for each coordinating residue (3-tier system)
         3. Group residues by zinc site
         4. Score each site at every pH value (Henderson-Hasselbalch)
         5. Flag pH-sensitive sites
-
-    Args:
-        pdb_file:  Path to the PDB file
-        pH_values: List of pH values to score at (default: DEFAULT_PH_VALUES)
-
-    Returns:
-        List of row dicts — one row per residue per protein, with
-        per-pH scores and site-level flags attached.
-        Returns empty list if no zinc sites found or on error.
     """
     if pH_values is None:
         pH_values = DEFAULT_PH_VALUES
@@ -80,7 +65,6 @@ def run_single(
     pdb_id = os.path.basename(pdb_file).replace(".pdb", "").upper()
     rows   = []
 
-    # ── Step 1: Parse ────────────────────────────────────
     try:
         sites = parse_zinc_sites(pdb_file, cutoff=CUTOFF)
     except Exception as e:
@@ -91,7 +75,6 @@ def run_single(
         print(f"  [INFO]  No zinc sites found in {pdb_id}")
         return []
 
-    # ── Step 2: Group residues by zinc site ID ───────────
     site_groups: Dict[str, list]  = {}
     site_pka_data: Dict[str, list] = {}
 
@@ -102,7 +85,6 @@ def run_single(
         zinc_id  = s.get("zinc_site_id") or s.get("zinc_id", f"{pdb_id}_ZN")
         distance = float(s.get("distance_to_zinc") or s.get("distance_from_zinc", 0.0))
 
-        # ── Step 3: pKa lookup ───────────────────────────
         pka_result = get_pka(
             pdb_id       = pdb_id,
             chain        = chain,
@@ -128,7 +110,6 @@ def run_single(
             (res_name, pka_result["pka"], pka_result["tier"])
         )
 
-    # ── Step 4: Score each site at every pH ─────────────
     for zinc_id, residues in site_groups.items():
         pka_tuples = site_pka_data[zinc_id]
 
@@ -142,7 +123,6 @@ def run_single(
         conf_tier  = result_74["confidence_tier"]
         weakest    = result_74["weakest_residue"]
 
-        # ── Step 5: pH-switch detection ──────────────────
         score_at_80 = ph_scores.get(8.0, site_stability_score(pka_tuples, 8.0)["overall_score"])
         score_at_70 = ph_scores.get(7.0, site_stability_score(pka_tuples, 7.0)["overall_score"])
         score_at_60 = ph_scores.get(6.0, site_stability_score(pka_tuples, 6.0)["overall_score"])
@@ -155,7 +135,6 @@ def run_single(
             score_at_70   >  0.3
         )
 
-        # ── Build one row per residue ────────────────────
         for res in residues:
             row = {
                 "pdb_id":           pdb_id,
@@ -201,7 +180,7 @@ def run_pipeline(
     # Import GCS utilities (handles both local and cloud paths)
     from gcs_utils import list_pdb_files, download_pdb, upload_results, is_gcs_path
 
-    # Get list of PDB files — works for both local and GCS paths
+    # Get list of PDB files
     pdb_files = list_pdb_files(pdb_folder)
 
     if not pdb_files:
