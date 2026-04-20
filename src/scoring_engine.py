@@ -9,18 +9,10 @@ Core concept:
     At a given pH, each coordinating residue has a probability of being
     deprotonated (available to bind zinc). The site stability score is
     the joint probability that ALL residues are simultaneously deprotonated.
-
-Usage:
-    from scoring_engine import hh_probability, site_stability_score, titration_curve
 """
 
 from typing import List, Tuple
 import math
-
-
-# ─────────────────────────────────────────────────────
-# FUNCTION 1: Henderson-Hasselbalch probability
-# ─────────────────────────────────────────────────────
 
 def hh_probability(pH: float, pKa: float) -> float:
     """
@@ -45,10 +37,6 @@ def hh_probability(pH: float, pKa: float) -> float:
     """
     return 1.0 / (1.0 + 10 ** (pKa - pH))
 
-
-# ─────────────────────────────────────────────────────
-# FUNCTION 2: Site stability score
-# ─────────────────────────────────────────────────────
 
 def site_stability_score(
     site_residues: List[Tuple[str, float, int]],
@@ -151,8 +139,7 @@ def titration_curve(
             pH, overall_score, minimum_residue_score, confidence_tier
     """
     if pH_range is None:
-        # Default: full physiological range in 0.5 steps
-        pH_range = [round(x * 0.5, 1) for x in range(6, 19)]  # 3.0 to 9.0
+        pH_range = [round(x * 0.5, 1) for x in range(6, 19)]  
 
     curve = []
     for pH in pH_range:
