@@ -1,13 +1,7 @@
 # dashboard/app.py
 """
-pH-ZinCloud — Interactive Zinc-Binding Site Stability Dashboard
-Streamlit web application with pH slider and 3D molecular viewer.
-
 Run locally:
     streamlit run dashboard/app.py
-
-Deploy:
-    streamlit run dashboard/app.py --server.port 8080
 """
 import sys
 import os
@@ -19,7 +13,6 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 
-# ── Page configuration ─────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="pH-ZinCloud",
     page_icon="🧪",
@@ -27,7 +20,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
     .main-header {
@@ -62,8 +54,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ── Helper functions ───────────────────────────────────────────────────────────
-
 def score_colour(score: float) -> str:
     if score >= 0.75:
         return "#2e7d32"   # green
@@ -89,7 +79,6 @@ def get_ph_score(row: pd.Series, pH: float) -> float:
     col = f"pH_{str(pH).replace('.', '_')}_score"
     if col in row.index:
         return float(row[col])
-    # Interpolate between nearest available pH values if exact not found
     ph_cols = {
         float(c.replace("pH_", "").replace("_score", "").replace("_", ".")):c
         for c in row.index if c.startswith("pH_") and c.endswith("_score")
@@ -115,7 +104,6 @@ def build_titration_curve(site_df: pd.DataFrame, zinc_site_id: str) -> go.Figure
 
     fig = go.Figure()
 
-    # Coloured line segments
     for i in range(len(ph_values) - 1):
         fig.add_trace(go.Scatter(
             x=[ph_values[i], ph_values[i+1]],
@@ -126,7 +114,6 @@ def build_titration_curve(site_df: pd.DataFrame, zinc_site_id: str) -> go.Figure
             hoverinfo="skip"
         ))
 
-    # Scatter points
     fig.add_trace(go.Scatter(
         x=ph_values, y=scores,
         mode="markers",
@@ -137,7 +124,6 @@ def build_titration_curve(site_df: pd.DataFrame, zinc_site_id: str) -> go.Figure
         showlegend=False
     ))
 
-    # Threshold lines
     fig.add_hline(y=0.75, line_dash="dot", line_color="#2e7d32",
                   annotation_text="High stability (0.75)",
                   annotation_position="right")
