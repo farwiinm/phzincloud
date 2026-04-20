@@ -1,8 +1,5 @@
 # src/parse_zinc_sites.py
 """
-parse_zinc_sites.py
--------------------
-Version: 1.1.0
 Status:  Production-ready (validated against 1CA2, 4TLN, 3CPA, 1CDO, 4MT2, 1ZNF)
 
 Parses PDB structure files to identify zinc ions and their
@@ -27,9 +24,6 @@ Known limitations:
       in original publications by ±1.
     - Bridging ligands in cluster-type sites (e.g. Metallothionein)
       may appear in multiple zinc_site_id records. This is expected.
-
-Author: Fathima Farwin Mohamed Milhan
-Project: pH-ZinCloud, MSc Big Data Analytics, RGU
 """
 
 import os
@@ -38,7 +32,6 @@ from typing import Optional
 from Bio.PDB import PDBParser
 from Bio.PDB.NeighborSearch import NeighborSearch
 
-# ── Logging setup ─────────────────────────────────────────────────────────────
 os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     filename="logs/parser.log",
@@ -46,35 +39,16 @@ logging.basicConfig(
     format="%(asctime)s — %(levelname)s — %(message)s"
 )
 
-# ── Constants ──────────────────────────────────────────────────────────────────
 ZINC_LIGAND_RESIDUES = {"CYS", "HIS", "ASP", "GLU"}
 ZINC_RESNAME         = "ZN"
 DEFAULT_CUTOFF       = 5.0
 
 
 def get_all_atoms(model) -> list:
-    """
-    Extract all atoms from a single Biopython Model object.
-
-    Args:
-        model: A Biopython Model object (structure[0]).
-
-    Returns:
-        A flat list of all Atom objects in the model.
-    """
     return list(model.get_atoms())
 
 
 def find_zinc_atoms(model) -> list:
-    """
-    Find all zinc atoms in a single model.
-
-    Args:
-        model: A Biopython Model object (structure[0]).
-
-    Returns:
-        A list of Atom objects representing zinc ions.
-    """
     zinc_atoms = []
 
     for chain in model:
@@ -92,22 +66,6 @@ def find_coordinating_residues(
     all_atoms: list,
     cutoff: float = DEFAULT_CUTOFF
 ) -> list:
-    """
-    Finding all coordinating residues within cutoff Angstroms of a zinc atom.
-
-    Using Biopython's NeighborSearch for efficient spatial lookup.
-    Filters to only ZINC_LIGAND_RESIDUES (CYS, HIS, ASP, GLU) that are
-    standard amino acids (not HETATM). Applies a secondary coordinating
-    atom distance check to prevent distal atoms from triggering inclusion.
-
-    Args:
-        zinc_atom:  The zinc Atom object to search around.
-        all_atoms:  All atoms in the model (used to build spatial index).
-        cutoff:     Search radius in Angstroms.
-
-    Returns:
-        A list of Residue objects that coordinate the zinc ion.
-    """
     COORD_ATOMS = {
         "HIS": ["NE2", "ND1"],
         "CYS": ["SG"],
@@ -138,7 +96,6 @@ def find_coordinating_residues(
         if residue_uid in seen_residue_ids:
             continue
 
-        # Secondary coordinating atom distance check
         preferred = COORD_ATOMS.get(parent_residue.resname, [])
         coord_atom_distance = float("inf")
 
@@ -162,12 +119,6 @@ def find_coordinating_residues(
 
 
 def get_coordinating_atom(residue, zinc_atom) -> tuple:
-    """
-    Find the specific atom within a residue closest to zinc.
-
-    Returns:
-        A tuple of (atom_name, distance_in_angstroms).
-    """
     preferred_atoms = {
         "HIS": ["NE2", "ND1"],
         "CYS": ["SG"],
@@ -229,19 +180,6 @@ def parse_zinc_sites(
     pdb_file: str,
     cutoff: float = DEFAULT_CUTOFF
 ) -> list:
-    """
-    Main function: parse a PDB file and return all zinc coordination sites.
-
-    Always uses Model 0 only — handles both X-ray (single model) and
-    NMR (multi-model ensemble) structures correctly.
-
-    Args:
-        pdb_file:  Path to a .pdb file.
-        cutoff:    Distance cutoff in Angstroms. Default 5.0.
-
-    Returns:
-        List of dicts, one per coordinating residue. Empty list if no zinc.
-    """
     pdb_id = os.path.splitext(os.path.basename(pdb_file))[0].upper()
     logging.info(f"Parsing {pdb_id} from {pdb_file}")
 
