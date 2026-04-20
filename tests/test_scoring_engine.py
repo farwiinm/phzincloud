@@ -1,7 +1,6 @@
 # tests/test_scoring_engine.py
 """
 Tests for scoring_engine.py
-Run from project root: python tests/test_scoring_engine.py
 """
 
 import sys
@@ -37,14 +36,14 @@ print("  ✓ Output always in range [0.0, 1.0]")
 # ── Test 2: site_stability_score ────────────────────────
 print("\n[2] site_stability_score — joint probability")
 
-# Single residue — score should equal individual probability
+# Single residue - score should equal individual probability
 residues_1 = [("HIS", 6.0, 3)]
 result = site_stability_score(residues_1, pH=7.4)
 expected = hh_probability(7.4, 6.0)
 assert abs(result["overall_score"] - expected) < 0.001
 print(f"  ✓ Single residue score matches hh_probability: {result['overall_score']:.4f}")
 
-# Three His site — joint probability
+# Three His site - joint probability
 residues_3his = [("HIS", 6.0, 3), ("HIS", 6.0, 3), ("HIS", 6.0, 3)]
 result_74 = site_stability_score(residues_3his, pH=7.4)
 result_40 = site_stability_score(residues_3his, pH=4.0)
