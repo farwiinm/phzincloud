@@ -1,14 +1,9 @@
 """
-test_edge_cases.py
-------------------
 Tests parse_zinc_sites behaviour on edge case protein structures:
     - Proteins with multiple zinc sites (4MT2 Metallothionein)
     - Proteins with no zinc (1UBQ Ubiquitin)
     - Malformed / missing file paths
     - Empty structure files
-
-Run with:
-    python tests/test_edge_cases.py
 """
 
 import os
@@ -95,7 +90,6 @@ def test_4MT2_no_residue_shared_between_sites():
         print("  SKIP: fewer than 2 sites found, cannot test cross-site sharing")
         return
 
-    # Build mapping: (chain, seq_num) → list of site_ids it appears in
     residue_to_sites = {}
     for r in results:
         key = (r["residue_chain"], r["residue_seq_num"], r["residue_name"])
