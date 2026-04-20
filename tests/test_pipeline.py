@@ -1,7 +1,6 @@
 # tests/test_pipeline.py
 """
 Integration tests for pipeline.py
-Run from project root: python tests/test_pipeline.py
 """
 
 import sys
@@ -35,7 +34,6 @@ for col in required_cols:
     assert col in rows[0], f"Missing column: {col}"
 print(f"  ✓ All required columns present")
 
-# pdb_id must be 1CA2
 assert all(r["pdb_id"] == "1CA2" for r in rows)
 print(f"  ✓ pdb_id correctly set to 1CA2")
 
@@ -71,7 +69,7 @@ TEST_OUTPUT = "results/test_pipeline_output.csv"
 df = run_pipeline(
     pdb_folder = "data/raw/test_proteins",
     output_csv = TEST_OUTPUT,
-    pH_values  = [4.0, 7.4]   # Minimal pH range for speed
+    pH_values  = [4.0, 7.4]  
 )
 
 assert not df.empty, "Pipeline should produce a non-empty DataFrame"
@@ -92,7 +90,6 @@ valid_tiers = {1, 2, 3}
 assert set(df["pka_tier"].unique()).issubset(valid_tiers), "Tier must be 1, 2, or 3"
 print(f"  ✓ Tiers found: {sorted(df['pka_tier'].unique())}")
 
-# Clean up test output
 os.remove(TEST_OUTPUT)
 print(f"  ✓ Test output file cleaned up")
 
