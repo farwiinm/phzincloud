@@ -4,8 +4,6 @@ test_parser.py
 Basic assertions to verify parse_zinc_sites.py produces
 correct output on known protein structures.
 
-Run with:  python tests/test_parser.py
-
 Expected results are taken from published coordination chemistry
 literature (Andreini et al., 2011; Auld, 2001).
 """
@@ -80,7 +78,6 @@ def test_1CA2_coordinating_atoms():
 # ── Test 2: No-zinc protein ────────────────────────────────────────────────
 # The parser must return an empty list, not crash.
 # Download any small protein without zinc — e.g. 1UBQ (Ubiquitin)
-# If you don't have it, this test uses a simple path check
 
 def test_no_zinc_returns_empty_list():
     # We simulate a no-zinc result by calling with a known no-zinc file
